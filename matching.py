@@ -3,7 +3,7 @@ import rasterio
 import numpy as np 
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-
+    
 # Open the GeoTIFF file using rasterio and preprocess it 
 def read_geotiff_to_array(file_path):
     """
@@ -47,7 +47,7 @@ index.add(buffer_array)        #add vectors to the index
 print(index.ntotal)
 
 k = 3                         # we want to see X nearest neighbors
-D, I = index.search(sarara_array[:5], k) # sanity check - want the distances to increase, want the first match to be itself
+D, I = index.search(sarara_array[:5], k) # sanity check - want the distances to increase
 print(I)                      # IDs
 print(D)                      # Distances
 
