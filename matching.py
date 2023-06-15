@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
+import xarray as xr
 
 np.random.seed(42)
  
@@ -21,7 +22,7 @@ def read_geotiff_to_array(file_path, full_bands = True, coordinates = False):
     """
     with rasterio.open(file_path) as dataset:
     # Read all the bands into separate NumPy arrays
-        band_data = {band: dataset.read(i   + 1) for i, band in enumerate(dataset.indexes)}
+        band_data = {band: dataset.read(i   + 1) for i, band in enumerate(dataset.indexes)}        
     # Reshape the band data arrays into 1D arrays
     reshaped_data = {band: data.flatten() for band, data in band_data.items()}
     # Create a pandas DataFrame from the reshaped band data dictionary
@@ -38,6 +39,15 @@ def read_geotiff_to_array(file_path, full_bands = True, coordinates = False):
         df = scaler.fit_transform(df)
     else:
         df = df.to_numpy()
+    x_coords = []
+    y_coords = []
+    for row in range(dataset.height):
+        for col in range(dataset.width):
+            x, y = dataset.xy(row, col)
+            x_coords.append(x)
+            y_coords.append(y)
+    df = np.column_stack((df, np.array(x_coords)))    
+    df = np.column_stack((df, np.array(y_coords)))    
     return df
 
 #Project Area
@@ -75,24 +85,39 @@ print(index.ntotal)            #number of pixels indexed
 #Search Subsection
 k = 1                         # we want to see k nearest neighbors
 index.nprobe = 10             #number of nearby cells to search
-D, I = index.search(sarara_sample[:5], k) # sanity check - want the distances to increase
-print(I)                      # IDs
-print(D)                      # Distances
+#D, I = index.search(sarara_sample[:5], k) # sanity check - want the distances to increase
+#print(I)                      # IDs
+#print(D)                      # Distances
 
 #Full Search  
 startTime = datetime.now()
-D, I = index.search(sarara_sample, k)     # actual search
+D, I = index.search(sarara_sample[:, 0:4], k)     # actual search
 print(I[:5])                   # neighbors of the 5 first queries
 print(I[-5:])                  # neighbors of the 5 last queries
 print(datetime.now() - startTime)
 
 #Results export and explore
-buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\buffer_coordinates.tif'
-buffer_array = read_geotiff_to_array(buffer_file_path, False, True)
+#add the match id to the project area sample array 
+sarara_sample_matched = np.concatenate((sarara_sample, I), axis = 1)
 
-#Filter the buffer to the 
-matching_buffer = buffer_array[list(I_flat)]
-export_buffer_matches = pd.DataFrame({'x': matching_buffer[:, 0], 'y': matching_buffer[:, 1]})
+buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\band_subset_buffer.tif'
+dataset = rasterio.open(buffer_file_path)
+    
+x_coords = []
+y_coords = []
+for row in range(dataset.height):
+    for col in range(dataset.width):
+        x, y = dataset.xy(row, col)
+        x_coords.append(x)
+        y_coords.append(y)
+
+match_coords_x = [x_coords[i] for i in list(I.flatten())]
+match_coords_y = [y_coords[i] for i in list(I.flatten())]
+
+matching_buffer_coords = np.column_stack((buffer_array[list(I.flatten())], np.array(match_coords_x)))
+matching_buffer_coords = np.column_stack((matching_buffer_coords, np.array(match_coords_y)))
 
 
-
+#SENSE CHECKING IN PLOT (geopands package issues so just export and plot outside venv)
+#X = pd.DataFrame(matching_buffer_coords, columns = ['distance_roads','distance_settlements','elevation', 'slope', 'x', 'y'])
+#X.to_csv('file.csv', index = False)
