@@ -8,7 +8,7 @@ from datetime import datetime
 np.random.seed(42)
  
 # Open the GeoTIFF file using rasterio and preprocess it 
-def read_geotiff_to_array(file_path):
+def read_geotiff_to_array(file_path, full_bands = True, coordinates = False):
     """
     Parameters
     ----------
@@ -27,12 +27,18 @@ def read_geotiff_to_array(file_path):
     # Create a pandas DataFrame from the reshaped band data dictionary
     df = pd.DataFrame(reshaped_data)
     #Way of dealing with missing values (for now)
-    df = df[[10, 12, 13, 14]] 
+    if full_bands == True:
+        df = df[[10, 12, 13, 14]] 
+    else:
+        pass
     # define min max scaler
-    scaler = MinMaxScaler()
-    # transform data
-    scaled = scaler.fit_transform(df)
-    return scaled
+    if coordinates == False:
+        scaler = MinMaxScaler()
+        # transform data
+        df = scaler.fit_transform(df)
+    else:
+        df = df.to_numpy()
+    return df
 
 #Project Area
 sarara_file_path = r'C:\Users\35387\OneDrive\Documents\learning\sarara.tif'
@@ -47,8 +53,8 @@ sarara_sample = np.random.choice(sarara_array.flatten(), size=sample_size, repla
 sarara_sample = sarara_sample.reshape(-1, sarara_array.shape[1])
 
 #Buffer Area
-buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\band_subset_buffer.tif'
-buffer_array = read_geotiff_to_array(buffer_file_path)
+#buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\band_subset_buffer.tif'
+#buffer_array = read_geotiff_to_array(buffer_file_path)
 
 #FAISS Set Up
 #faiss.write_index(index, "populated.index")
@@ -79,3 +85,14 @@ D, I = index.search(sarara_sample, k)     # actual search
 print(I[:5])                   # neighbors of the 5 first queries
 print(I[-5:])                  # neighbors of the 5 last queries
 print(datetime.now() - startTime)
+
+#Results export and explore
+buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\buffer_coordinates.tif'
+buffer_array = read_geotiff_to_array(buffer_file_path, False, True)
+
+#Filter the buffer to the 
+matching_buffer = buffer_array[list(I_flat)]
+export_buffer_matches = pd.DataFrame({'x': matching_buffer[:, 0], 'y': matching_buffer[:, 1]})
+
+
+
