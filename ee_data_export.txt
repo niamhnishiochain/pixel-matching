@@ -34,7 +34,7 @@ Export.image.toAsset({
   description: 'modelling_data_sarara',
   assetId: 'modelling_data_sarara',
   crs: 'EPSG:4326',
-  //region: limits, //no need for this given that we have clipped the image
+  region: sarara,
   scale: 30, 
   maxPixels: 1e13
   //pyramiding policy
@@ -45,7 +45,7 @@ sarara_data = sarara_data.toUint16()
 Export.image.toDrive({
   image: sarara_data.toFloat(),
   scale: 30,  
-  //region': , //no need - image is clipped
+  region: sarara, 
   fileFormat: 'GeoTIFF'
 });
 
@@ -84,7 +84,7 @@ Export.image.toAsset({
   description: 'asset_modelling_data_buffer',
   assetId: 'modelling_data_buffer',
   crs: 'EPSG:4326',
-  //region: limits, //as before - no need as image is clipped
+  region: bufferOutOnly, 
   scale: 30, 
   maxPixels: 1e13
   //pyramiding policy
@@ -95,7 +95,7 @@ buffer_data = buffer_data.toUint16()
 Export.image.toDrive({
   image: buffer_data.toFloat(),
   scale: 30,  
-  //region': , //no need - image is clipped
+  region: bufferOutOnly, 
   fileFormat: 'GeoTIFF'
 });
 
