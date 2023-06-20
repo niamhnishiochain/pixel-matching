@@ -7,8 +7,10 @@
 library(raster)
 
 # Set working directory
-setwd('C:/Users/35387/Downloads/buffer_tiff')
-
+setwd('C:/Users/35387/Downloads')
+      #buffer_tiff')
+check <- stack('export_modelling_data_sarara_1.tif')
+check
 #Merging
 # Read input raster files and merge them
 #THIS IS MORE EFFICIENT CODE BUT IT TAKES LONGER TO RUN THAN FROM LINE 19
@@ -33,5 +35,5 @@ writeRaster(total, output_file)
 #Subset the bands
 #either use the total raster which you create above or read in the file
 #total <- stack('merged.tif')
-buffer_subset <- dropLayer(total, c(1, 2, 3, 4, 5, 6, 7, 8, 10, 14, 15, 16 17))
-writeRaster(buffer_coordinates, 'band_subset_buffer.tif')
+buffer_subset <- dropLayer(check, c(1, 2, 3, 4, 5, 6, 7, 8, 10, 14, 15, 16, 17))
+writeRaster(buffer_subset, 'band_subset_buffer1.tif')
