@@ -42,9 +42,9 @@ def read_geotiff_to_array_faiss(file_path, all_bands: True):
     else:
         pass
     # Scale the values
-    scaler = MinMaxScaler()
+    #scaler = MinMaxScaler()
     # transform data
-    array = scaler.fit_transform(array)
+    #array = scaler.fit_transform(array)
     return array
 
 # Open the GeoTIFF file using rasterio and preprocess to analyse matching results
@@ -96,6 +96,7 @@ def read_geotiff_to_array_results(file_path, number_of_bands: 17, select_indices
 #Project Area
 sarara_file_path = r'C:\Users\35387\OneDrive\Documents\learning\data\earth_engine_exports\sarara.tif'
 sarara_array = read_geotiff_to_array_faiss(sarara_file_path, True)
+sarara_array = sarara_array[~np.any(np.isnan(sarara_array), axis=1)]
 #%%
 #Randomly sample 1% from the Sarara array
 # Calculate the number of elements for the 1% sample
@@ -116,9 +117,8 @@ buffer_array = read_geotiff_to_array_faiss(buffer_file_path, False)
 #FAISS Set Up
 #faiss.write_index(index, "populated.index")
 #index = faiss.read_index("populated.index")
-k = 1                         # we want to see k nearest neighbors
-index.nprobe = 10             #number of nearby cells to search
-"""
+           #number of nearby cells to search
+
 #Train and add to the index
 nlist= 100                     #number of Voronoi cells
 d = sarara_array.shape[1]      #dimensions
@@ -128,14 +128,16 @@ assert not index.is_trained
 index.train(buffer_array)   
 assert index.is_trained
 
+k = 1                         # we want to see k nearest neighbors
+index.nprobe = 10             # number of Voronoi cells to search
 index.add(buffer_array)        #add vectors to the index
 print(index.ntotal)            #number of pixels indexed
-faiss.write_index(index, "populated.index") #save the final index to disk
-"""
+#faiss.write_index(index, "populated.index") #save the final index to disk
+
 #Search subsection as sense check       
-#D, I = index.search(sarara_sample[:5], k) # sanity check - want the distances to increase
-#print(I)                      # IDs
-#print(D)                      # Distances
+D, I = index.search(sarara_sample[:5], k) # sanity check - want the distances to increase
+print(I)                      # IDs
+print(D)                      # Distances
 
 #%%
 #Full Search  

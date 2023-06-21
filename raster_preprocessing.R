@@ -7,7 +7,11 @@
 library(raster)
 
 # Set working directory
-setwd('C:/Users/35387/Downloads/buffer')
+setwd('C:/Users/35387/OneDrive/Documents/learning/data/earth_engine_exports')
+      #/buffer')
+stack('band_subset_buffer.tif')
+
+#setwd('C:/Users/35387/Downloads/buffer')
       #buffer_tiff')
 
 #Merging
@@ -33,9 +37,9 @@ writeRaster(total, output_file)
 
 #Subset the bands
 #either use the total raster which you create above or read in the file
-#total <- stack('merged.tif')
+total <- stack('merged.tif')
 
 #only keep bands we are matching on for now (which have no missings)
   #distance to roads, distance to settlements, slope, elevation
-buffer_subset <- dropLayer(total, c(1, 2, 3, 4, 5, 6, 7, 8, 10, 14, 15, 16, 17))
-writeRaster(buffer_subset, 'band_subset_buffer1.tif')
+buffer_subset <- dropLayer(total, c(1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 15, 16, 17))
+writeRaster(buffer_subset, 'band_subset_buffer1.tif', overwrite = TRUE)
