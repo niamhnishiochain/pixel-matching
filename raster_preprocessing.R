@@ -7,12 +7,9 @@
 library(raster)
 
 # Set working directory
-setwd('C:/Users/35387/OneDrive/Documents/learning/data/earth_engine_exports')
+setwd('C:/Users/35387/OneDrive/Documents/learning/data/earth_engine_exports/buffer')
       #/buffer')
-stack('band_subset_buffer.tif')
-
-#setwd('C:/Users/35387/Downloads/buffer')
-      #buffer_tiff')
+buffer = stack('band_subset_buffer.tif')
 
 #Merging
 # Read input raster files and merge them
@@ -42,4 +39,9 @@ total <- stack('merged.tif')
 #only keep bands we are matching on for now (which have no missings)
   #distance to roads, distance to settlements, slope, elevation
 buffer_subset <- dropLayer(total, c(1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 15, 16, 17))
-writeRaster(buffer_subset, 'band_subset_buffer1.tif', overwrite = TRUE)
+writeRaster(buffer_subset, 'band_subset_buffer_nan.tif', overwrite = TRUE, NAflag = -999)
+
+#Sense Checking Missingness
+#plot(buffer[[2]], colNA = 'red')
+#road = buffer[[1]]
+#table(is.na(road[]))
