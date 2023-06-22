@@ -21,8 +21,7 @@ def read_geotiff_to_array_faiss(file_path, all_bands: True):
     file_path : str
         path to the tif file with the features to match on 
     all_bands: boolean
-        whether the 
-    
+        whether the raster file has all 17 bands or not
     Returns
     -------
     scaled : numpy array
@@ -34,17 +33,23 @@ def read_geotiff_to_array_faiss(file_path, all_bands: True):
     # Reshape the band data arrays into 1D arrays
     reshaped_data = {band: data.flatten() for band, data in band_data.items()}
     array = np.transpose(np.array(list(reshaped_data.values())))
+    
+    #Way of dealing with missing values (exporting from R we set NAs to -999)
+        #there are so many missing values because raster always square matrix and the shape are not
+    array[array == -999] = np.nan
+    array = array[~np.any(np.isnan(array), axis=1)]
 
-    #Way of dealing with missing values (for now we just choose 4 bands without nas to match on)
+    #Way of dealing with large file sizes (just work with subset - 4 bands)
     if all_bands == True:
-        to_keep = [10, 12, 13, 14]
+        to_keep = [10, 12,13, 14]
         array = array[:, to_keep]
     else:
         pass
     # Scale the values
-    #scaler = MinMaxScaler()
+    scaler = MinMaxScaler()
     # transform data
-    #array = scaler.fit_transform(array)
+    array = scaler.fit_transform(array)
+        
     return array
 
 # Open the GeoTIFF file using rasterio and preprocess to analyse matching results
@@ -72,7 +77,6 @@ def read_geotiff_to_array_results(file_path, number_of_bands: 17, select_indices
         band_data = {band: dataset.read(i   + 1) for i, band in enumerate(dataset.indexes)}        
     # Reshape the band data arrays into 1D arrays
     reshaped_data = {band: data.flatten() for band, data in band_data.items()}
-    
     #add coordinate information
     x_coords = []
     y_coords = []
@@ -84,7 +88,6 @@ def read_geotiff_to_array_results(file_path, number_of_bands: 17, select_indices
     next_to_last = number_of_bands + 1
     last = number_of_bands + 2
     output = {**reshaped_data, next_to_last: x_coords, last: y_coords}
-    
     #reshape
     array = np.transpose(np.array(list(output.values())))
     
@@ -96,7 +99,6 @@ def read_geotiff_to_array_results(file_path, number_of_bands: 17, select_indices
 #Project Area
 sarara_file_path = r'C:\Users\35387\OneDrive\Documents\learning\data\earth_engine_exports\sarara.tif'
 sarara_array = read_geotiff_to_array_faiss(sarara_file_path, True)
-sarara_array = sarara_array[~np.any(np.isnan(sarara_array), axis=1)]
 #%%
 #Randomly sample 1% from the Sarara array
 # Calculate the number of elements for the 1% sample
@@ -110,8 +112,22 @@ sarara_sample = sarara_array[sample_indices]
 
 #%%
 #Buffer Area
-buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\data\earth_engine_exports\buffer\band_subset_buffer.tif'
+buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\data\earth_engine_exports\buffer\band_subset_buffer_nan.tif'
 buffer_array = read_geotiff_to_array_faiss(buffer_file_path, False)
+
+#%%
+d = sarara_array.shape[1]
+index = faiss.IndexFlatL2(d)   # build the index
+print(index.is_trained)
+index.add(buffer_array)                  # add vectors to the index
+print(index.ntotal)
+
+#%%
+k = 5                        # we want to see 4 nearest neighbors
+D, I = index.search(sarara_sample[:5], k) # sanity check
+print(I)
+print(D)
+
 
 #%%
 #FAISS Set Up
@@ -121,7 +137,7 @@ buffer_array = read_geotiff_to_array_faiss(buffer_file_path, False)
 
 #Train and add to the index
 nlist= 100                     #number of Voronoi cells
-d = sarara_array.shape[1]      #dimensions
+d = 1 #sarara_array.shape[1]      #dimensions
 quantizer = faiss.IndexFlatL2(d)  #the other index
 index = faiss.IndexIVFFlat(quantizer, d, nlist)
 assert not index.is_trained
