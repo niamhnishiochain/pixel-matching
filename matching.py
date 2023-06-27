@@ -74,13 +74,13 @@ def read_geotiff_to_array_results(file_path, select_indices):
     """
     with rasterio.open(file_path) as dataset:
     # Read all the bands into separate NumPy arrays
-        band_data = {band: dataset.read(i   + 1) for i, band in enumerate(dataset.indexes)}        
+        data = dataset.read(1)    
     # Reshape the band data arrays into 1D arrays
-    reshaped_data = {band: data.flatten() for band, data in band_data.items()}
-    array = np.transpose(np.array(list(reshaped_data.values())))
+    reshaped_data = data.flatten()
+    array = np.transpose(reshaped_data) #np.array(list(reshaped_data.values())))
     #add coordinate information
     x_coords = []
-    y_coords = []
+    y_coords = []   
     for row in range(dataset.height):
         for col in range(dataset.width):
             x, y = dataset.xy(row, col)
@@ -91,15 +91,8 @@ def read_geotiff_to_array_results(file_path, select_indices):
     
     array[array == -999] = np.nan
     array = array[~np.any(np.isnan(array), axis=1)]   
-    # Scale the values
-    scaler = MinMaxScaler()
-    # transform data
-    if all_bands == True:
-        array[:, 0:17] = scaler.fit_transform(array[:, 0:17])
-    else:
-        
     #subset to the matches or sample 
-    array = array[select_indices, :]
+    array = array[select_indices, 1:3]
 
     return array
 
@@ -121,7 +114,7 @@ sarara_sample = sarara_array[sample_indices]
 #%%
 #Buffer Area
 buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\data\earth_engine_exports\buffer\band_subset_buffer_nan.tif'
-buffer_array = read_geotiff_to_array_faiss(buffer_file_path, False)
+#buffer_array = read_geotiff_to_array_faiss(buffer_file_path, False)
 
 #%%
 #FAISS Set Up
@@ -159,6 +152,8 @@ print(datetime.now() - startTime)
 #%%
 #Results export and explore
 sarara_sample_matches = read_geotiff_to_array_results(sarara_file_path, sample_indices)
+
+#%%
 buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
 
 #%%
@@ -210,7 +205,7 @@ matching_buffer_coords = np.column_stack((buffer_array[list(I.flatten())], np.ar
 matching_buffer_coords = np.column_stack((matching_buffer_coords, np.array(match_coords_y)))
 
 #%%
-#sample_matches_df.to_csv('sample_matches_plot.csv', index = False)
+df_buffer_matches.to_csv('buffer_matches_plot.csv', index = False)
 
 #SENSE CHECKING IN PLOT (geopands package issues so just export and plot outside venv)
 #X = pd.DataFrame(matching_buffer_coords, columns = ['distance_roads','distance_settlements','elevation', 'slope', 'x', 'y'])
