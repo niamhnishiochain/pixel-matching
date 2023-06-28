@@ -1,3 +1,15 @@
+"""
+This script:
+    1. Two functions to read in raster files
+        a) to execute the FAISS
+        b) to extract the coordinates from the FAISS results
+    2. Execute the FAISS
+        a) set up and train the index
+        b) or load it
+        c) do the search
+    3. Export the results
+@author: Niamh
+"""
 #%%
 #Package imports
 import faiss
