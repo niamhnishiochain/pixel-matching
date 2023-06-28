@@ -1,12 +1,23 @@
-# Pixel matching using FAISS for dynamic baseline development
+# Pixel matching using FAISS for Dynamic Baseline Development
 
-The packages used are faiss, rasterio, numpy, pandas, and sklearn. I recommend setting up a venv and conda-forge installing the faiss package. I hope the environment.yml file will do this correctly.
+This repo provides an implementation of pixel matching using FAISS (Facebook AI Similarity Search) for dynamic baseline. The goal is to match pixels in a project area with similar features in a buffer area (100km). The matching features are derived from satellite imagery and include distance to roads, distance to settlements, distance to deforestation in the past 5 years, distance to cropland, biome, elevation, and slope. The procedure to create of GeoTiffs with these features is detailed in the Earth Engine Scripts which can be found in the ee_scripts folder.
 
-For now the faiss implementation is very simple. The steps are as follows:
+## Packages 
+The packages used are faiss, rasterio, numpy, pandas, and sklearn. I recommend setting up a conda venv and conda-forge installing the faiss package. I hope the environment.yml file will do this correctly. 
 
-	1. Open the raster files for the project and buffer area. The buffer area does not include the full 100km around the project for this initial run but rather a sample of the buffer area.
-	2. The raster files are restricted to the bands which do not contain majority missing values. The bands are then scaled between 0 and 1.
-	3. The faiss setup involves setting the dimensions of to the number of bands, setting the index using this dimension, adding the base data (the buffer in our case) to the index. 
-	4. Then, choose the number of neighbours we wish to return for each. Then conduct the search on the index with this k.
-	5. Print the I for the ids of the matches, print the D for the distances. 
+## The Faiss Implementation 
+This is quite simple. The [documentation](https://github.com/facebookresearch/faiss) for the faiss package is solid and I recommend reading the example tutorial to get a sense of what is going on. The steps are as follows:
 
+1. 
+ 
+
+## The Data:
+Every project and buffer search region pixel is represented by a vector of satellite-derived matching features. These features are as follows:
+
+* Distance to roads:
+* Distance to settlements:
+* Distance to deforestation (within past 5 years):
+* Distance to cropland: 2010, 1km resolution [link](https://developers.google.com/earth-engine/datasets/catalog/USGS_GFSAD1000_V1#description)
+* Biome: 
+* Elevation:
+* Slope: 
