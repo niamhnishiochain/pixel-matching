@@ -1,0 +1,84 @@
+/*
+This script to export the transformed Hansen dataset to calculate the 
+amount of deforestation in the sample project area versus the control 
+area (matching pixels in the buffer area). 
+
+1. Preprocess the lossyear band of the Hansen data such that it is binary   
+2. Export that version of the image for the project area and the buffer 
+    around the project
+
+*/
+//***********************************************************
+//LOAD INITAL DATA 
+//***********************************************************
+var kenya = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017').filter(ee.Filter.eq('country_na', ee.String('Kenya')));
+var hansen = ee.Image('UMD/hansen/global_forest_change_2022_v1_10').clip(kenya)
+
+//***********************************************************
+//PROCESSING 
+//***********************************************************
+//Replacing the lossyears as necessary - we want binary deforestation or not
+// A list of pixel values to replace.
+var fromList = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,  
+                13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+// A corresponding list of replacement values (10 becomes 1, 20 becomes 2, etc).
+var toList =   [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+              1, 1, 1, 1, 1, 1, 1, 1, 1]
+              
+var hansen = hansen.remap({
+  from: fromList,
+  to: toList,
+  defaultValue: 0,
+  bandName: 'lossyear'
+});
+hansen = hansen.select(['remapped'])
+  .rename(['lossyear']);
+print(hansen)
+
+//***********************************************************
+//EXPORT  
+//***********************************************************
+var image = hansen
+// Polygon feature of project area (Sarara) 
+var sarara = ee.FeatureCollection('users/niamh-rtlab/sarara_outline')
+                  .first();
+
+// Cast the resulting object as an ee.Feature so that the call to the buffer
+// method is unambiguous (first() and buffer() are shared by multiple classes).
+var feature = ee.Feature(sarara);
+
+//Sarara only
+var sarara_data = image.clip(sarara)
+
+// Export the image to Google Drive
+sarara_data = sarara_data.toUint16()
+Export.image.toDrive({
+  image: sarara_data.toFloat(),
+  description: 'export_hansen_data_sarara',
+  scale: 30,  
+  region: sarara,  
+  fileFormat: 'GeoTIFF'
+});
+
+//**********
+//BUFFER
+// Generate buffered features out from the original boundary.
+var bufferOut = feature.buffer(100000);  // 100 km out
+var bufferOutOnly = bufferOut.difference(feature);
+
+//Clip to the Buffer
+var buffer_data = image.clip(bufferOutOnly)
+
+// Export the image to Google Drive
+buffer_data = buffer_data.toUint16()
+Export.image.toDrive({
+  image: buffer_data.toFloat(),
+  description: 'export_hansen_data_buffer',
+  scale: 30,  
+  region: bufferOutOnly, 
+  fileFormat: 'GeoTIFF'
+});
+
+
+

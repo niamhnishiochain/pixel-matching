@@ -1,0 +1,62 @@
+/*
+This script:
+Calculates distance to recent deforestation (within the last 5 years)
+using the Hansen dataset
+*/
+//ee.FeatureCollection('users/niamh-rtlab/NamunyakConservancy')
+var kenya = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017').filter(ee.Filter.eq('country_na', ee.String('Kenya')));
+var hansen = ee.Image('UMD/hansen/global_forest_change_2022_v1_10').clip(kenya)
+Map.centerObject(kenya)
+
+//********** Data Preparation ************
+//First Step:
+//Mask the non-forest pixels
+var base = hansen.select('datamask')
+var base_mask =  base.gt(0)
+var masked_hansen = hansen.updateMask(base_mask);
+print('masked hansen', masked_hansen)
+Map.addLayer(masked_hansen.select('lossyear'), {palette: ['red', 'yellow']}, 'masked hansen')
+
+//Second Step:
+//1/0 for deforestation in the past 5 years
+//1: 17,18,19,20,21
+//0: the rest
+//Replacing the neighbours as necessary (i.e. 21 replaced with 0 for all neighbours bands)
+// A list of pixel values to replace.
+var fromList = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,  
+                13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+// A corresponding list of replacement values (10 becomes 1, 20 becomes 2, etc).
+var toList =   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+              0, 0, 0, 0, 1, 1, 1, 1, 1]
+              
+var masked_hansen = masked_hansen.remap({
+  from: fromList,
+  to: toList,
+  defaultValue: 0,
+  bandName: 'lossyear'
+});
+masked_hansen = masked_hansen.select(['remapped'])
+  .rename(['lossyear']);
+  
+//Check
+Map.addLayer(masked_hansen.select('lossyear'), {palette: ['yellow', 'red']}, 'updated masked hansen')
+
+//********** Feature Creation ************
+// Calculating Distances to Deforestation in the past 5 years
+var pixel_size = ee.Image.pixelArea().sqrt();
+var pixel_size = pixel_size.clip(kenya)
+print('pixel_size', pixel_size)
+var dist_def_pix = masked_hansen.fastDistanceTransform(256, 'pixels', 'squared_euclidean').sqrt();
+var dist_def = dist_def_pix.multiply(pixel_size).rename('dist_def').toInt32();
+print(dist_def, 'dist_def')
+Map.addLayer(dist_def, {min: 0, max: 586421, palette: ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']}, 'distance to deforestation')
+
+//********** Export as an Asset ************
+Export.image.toAsset({
+  image: dist_def,
+  description: 'distance_to_deforestation',
+  assetId: 'distance_to_deforestation',
+  region: kenya,
+  maxPixels: 1e13
+})

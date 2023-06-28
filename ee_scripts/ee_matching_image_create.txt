@@ -1,0 +1,46 @@
+/*
+This script:
+1. Loads the original data and removes the unnecessary for matching bands.
+  Those are neighbours, 2021 deforestation status, x, y, and distance to 
+  protected areas.
+2. Loads additional images which we want to use as matching features.
+  Those are: global human modification index, distance to cropland, distance 
+  to deforestation in the past 5 years. 
+3. Makes one image from these images combined
+4. Exports that image all of Kenya as an Earth Engine asset
+5. This asset can then be exported for specific areas/geometries using the 'ee_matching_data_export' script
+*/
+var kenya = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017').filter(ee.Filter.eq('country_na', ee.String('Kenya')));
+
+//Load the modelling data and filter to features relevant to matching
+var base = ee.Image('users/niamh-rtlab/modelling_data')
+var subset_base = base.select('distance_roads', 'distance_settlements', 
+                              'slope', 'elevation')
+
+//Load the Global Human Modification image
+var ghm = ee.ImageCollection('CSP/HM/GlobalHumanModification').first();
+
+//Load the distance to deforesation asset (see the script for how it is created)
+var dist_def = ee.Image('users/niamh-rtlab/distance_to_deforestation')
+
+//Load the distance to crop asset (see the script for how it is created)
+var dist_crop = ee.Image('users/niamh-rtlab/distance_crop')
+
+//Load the distance to crop asset (see the script for how it is created)
+var biome = ee.Image('OpenLandMap/PNV/PNV_BIOME-TYPE_BIOME00K_C/v01').select('biome_type').clip(kenya)
+
+//Concatenate everything together
+var matching = ee.Image.cat(subset_base, ghm, dist_def, dist_crop, biome) 
+print(matching)
+
+Map.centerObject(kenya)
+Map.addLayer(matching)
+
+Export.image.toAsset({
+  image: matching,
+  description: 'matching',
+  assetId: 'matching',
+  region: kenya,
+  maxPixels: 1e13, 
+  scale: 30
+})

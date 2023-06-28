@@ -1,0 +1,109 @@
+ /*
+This script:
+1. Creates buffers around the Sarara area (in, out, only the buffer)
+2. Clips the matching data to the buffer and to the project area
+	The matching data comprises of data from the risk modelling work and other scripts in this repo
+3. Exports the clipped images as GeoTiffs
+*/
+
+//LOAD THE MODELLING DATA
+var image = ee.Image('users/niamh-rtlab/matching')  
+
+//***********************************************************
+//PROJECT AREA 
+//***********************************************************
+// Polygon feature of Sarara (National Park).
+var sarara = ee.FeatureCollection('users/niamh-rtlab/sarara_outline')
+                  .first();
+
+// Cast the resulting object as an ee.Feature so that the call to the buffer
+// method is unambiguous (first() and buffer() are shared by multiple classes).
+var feature = ee.Feature(sarara);
+Map.centerObject(feature);
+
+//Sarara only
+var sarara_data = image.clip(sarara)
+
+//Check the clipping
+var visSararaImage = {bands: ["slope"], opacity: 1, palette: ["green"]}
+Map.addLayer(sarara_data, visSararaImage, 'Sarara Image');
+
+//Export to Asset
+/*
+Export.image.toAsset({
+  image: sarara_data,
+  description: 'matching_data_sarara',
+  assetId: 'modelling_data_sarara',
+  crs: 'EPSG:4326',
+  //region: limits, //no need for this given that we have clipped the image
+  scale: 30, 
+  maxPixels: 1e13
+  //pyramiding policy
+});
+*/
+
+// Export the image to Google Drive
+sarara_data = sarara_data.toUint16()
+Export.image.toDrive({
+  image: sarara_data.toFloat(),
+  description: 'export_matching_data_sarara',
+  scale: 30,  
+  region: sarara,  
+  fileFormat: 'GeoTIFF'
+});
+
+
+//***********************************************************
+//BUFFER AREA 
+//***********************************************************
+// Generate buffered features out from the original boundary.
+var bufferOut = feature.buffer(100000);  // 100 km out
+var bufferOutOnly = bufferOut.difference(feature);
+
+// Display the features on the map. (visual inspection)
+//Map.addLayer(bufferOut, {color: 'red'}, 'Buffer out');
+Map.addLayer(feature, {color: 'blue'}, 'Original Area');
+Map.addLayer(bufferOutOnly, {color: 'purple'}, 'Buffer out');
+
+//See how the areas compare
+print('Out Buffer Area', 
+    bufferOutOnly.geometry().area(), 
+    'square meters');
+
+print('Original Area', 
+    feature.geometry().area(), 
+    'square meters');
+
+//Clip to the Buffer
+var buffer_data = image.clip(bufferOutOnly)
+
+//Check the clipping
+var visBufferImage = {bands: ["slope"], opacity: 1, palette: ["red"]}
+Map.addLayer(buffer_data, visBufferImage, 'Buffer Image');
+
+//Export to Assest
+/*
+Export.image.toAsset({
+  image: buffer_data,
+  description: 'asset_matching_data_buffer',
+  assetId: 'modelling_data_buffer',
+  crs: 'EPSG:4326',
+  //region: limits, //as before - no need as image is clipped
+  scale: 30, 
+  maxPixels: 1e13
+  //pyramiding policy
+});
+*/
+
+// Export the image to Google Drive
+buffer_data = buffer_data.toUint16()
+Export.image.toDrive({
+  image: buffer_data.toFloat(),
+  description: 'export_matching_data_buffer',
+  scale: 30,  
+  region: bufferOutOnly, //no need - image is clipped
+  fileFormat: 'GeoTIFF'
+});
+
+
+

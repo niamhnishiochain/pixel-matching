@@ -1,0 +1,51 @@
+/*
+This script:
+Calculates distance to *any* cropland using the GFSAD dataset
+*/
+//ee.FeatureCollection('users/niamh-rtlab/NamunyakConservancy')
+var kenya = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017').filter(ee.Filter.eq('country_na', ee.String('Kenya')));
+var crop = ee.Image('USGS/GFSAD1000_V1').clip(kenya)
+Map.centerObject(kenya)
+
+//********** Data Preparation ************
+//First Step:
+//1/0 for any class of cropland
+//1: 1,2,3,4,5
+//0: 0
+//Replacings necessary (i.e. 21 replaced with 0 for all neighbours bands)
+// A list of pixel values to replace.
+var fromList = [1, 2, 3, 4, 5];
+
+// A corresponding list of replacement values (10 becomes 1, 20 becomes 2, etc).
+var toList =   [1, 1, 1, 1, 1]
+              
+var crop = crop.remap({
+  from: fromList,
+  to: toList,
+  defaultValue: 0,
+  bandName: 'landcover'
+});
+crop = crop.select(['remapped'])
+  .rename(['landcover']);
+  
+//Check
+Map.addLayer(crop.select('landcover'), {palette: ['yellow', 'red']}, 'updated crop image')
+
+//********** Feature Creation ************
+
+// Calculating Distances to Cropland
+var pixel_size = ee.Image.pixelArea().sqrt();
+var pixel_size = pixel_size.clip(kenya)
+print('pixel_size', pixel_size)
+var dist_crop_pix = crop.fastDistanceTransform(256, 'pixels', 'squared_euclidean').sqrt();
+var dist_crop = dist_crop_pix.multiply(pixel_size).rename('dist_crop').toInt32();
+print(dist_crop, 'dist_crop')
+Map.addLayer(dist_crop, {min: 0, max: 586421, palette: ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']}, 'distance to deforestation')
+
+Export.image.toAsset({
+  image: dist_crop,
+  description: 'distance_crop',
+  assetId: 'distance_crop',
+  region: kenya,
+  maxPixels: 1e13
+})
