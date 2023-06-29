@@ -3,21 +3,26 @@ This script is to calculate the deforestation in the
 Sarara sample vs the matching pixels in the buffer.
 @author: Niamh
 """
+#%%
 import pandas as pd
 import rasterio
-
+#%%
 # Read the CSV files containing the coordinates
 sample_coordinates_filepath = r'C:\Users\35387\OneDrive\Documents\learning\sample_matches_plot.csv'
 buffer_match_coordinates_filepath = r'C:\Users\35387\OneDrive\Documents\learning\buffer_matches_plot.csv'
 sample_coordinates = pd.read_csv(sample_coordinates_filepath)
 buffer_match_coordinates = pd.read_csv(buffer_match_coordinates_filepath)
 buffer_match_coordinates.columns = ['x', 'y']
+
+#%%
 # Load the raster files containing the binary deforestation data
 sarara_hansen_filepath = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\hansen\export_hansen_data_sarara.tif'
 buffer_hansen_filepath = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\hansen\export_hansen_data_buffer.tif'
 sarara_hansen = rasterio.open(sarara_hansen_filepath)
 buffer_hansen = rasterio.open(buffer_hansen_filepath)
 
+#%%
+#Function to calculate the sum of deforestation pixels from the coordinates
 def calc_deforestation_history(coordinate_df, def_raster):
     # Initialize the sum variable
     deforestation_sum = 0
@@ -41,3 +46,10 @@ def calc_deforestation_history(coordinate_df, def_raster):
     print("Sum of pixel values:", deforestation_sum)
     return deforestation_sum
 
+#%%
+#Sample Coordinate Results
+sample_def = calc_deforestation_history(sample_coordinates, sarara_hansen)
+
+#%%
+#Buffer Match Coordinate Results
+match_def = calc_deforestation_history(buffer_match_coordinates, buffer_hansen)
