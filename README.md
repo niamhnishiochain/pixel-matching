@@ -28,6 +28,9 @@ Every project and buffer search region pixel is represented by a vector of satel
 * Slope: calculated from elevation image [documentation](https://developers.google.com/earth-engine/apidocs/ee-terrain-slope)
 * Global Human Modification: 2016, 1km resolution  [link](https://developers.google.com/earth-engine/datasets/catalog/CSP_HM_GlobalHumanModification)
 
+### Other Potential Features
+Gross primary production: think of it as a forest characteristic, annual carbon uptake by photosynthesis [link](https://developers.google.com/earth-engine/datasets/catalog/MODIS_006_MYD17A2H#description)
+
 ## Outstanding
 * RELATING THE SAMPLE PIXEL TO ITS MATCH!
 * There are some features which are important to add: percentage forest cover, and climate variables.
@@ -35,3 +38,4 @@ Every project and buffer search region pixel is represented by a vector of satel
 * Decide whether there are features we want to be matching on precisely. If yes, understand how this would be implemented.
 * Discuss the question of dynamic versus static. 
 * Discuss whether we want to be weighting different matching features differently. Understand how this would be implemented.
+* Unit tests...
