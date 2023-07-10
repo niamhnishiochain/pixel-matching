@@ -33,7 +33,7 @@ Gross primary production: think of it as a forest characteristic, annual carbon 
 
 ## Outstanding
 * RELATING THE SAMPLE PIXEL TO ITS MATCH!
-* There are some features which are important to add: percentage forest cover, and climate variables.
+* There are some features which are important to add: percentage forest cover, and climate variables (precipitation and mean temperature (Hewson)).
 * Establish where WITHIN Sarara the project will be taking place. It would be better to sample from this area than the whole of Sarara.
 * Decide whether there are features we want to be matching on precisely. If yes, understand how this would be implemented.
 * Discuss the question of dynamic versus static. 

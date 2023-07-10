@@ -103,16 +103,16 @@ def read_geotiff_to_array_results(file_path, select_indices):
 
 #%%
 #Project Area
-sarara_file_path = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\matching\export_matching_data_sarara.tif'
+sarara_file_path = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\matching\export_matching_data_pa.tif'
 sarara_array = read_geotiff_to_array_faiss(sarara_file_path)
 #%%
 #Randomly sample 1% from the Sarara array
-# Calculate the number of elements for the 1% sample
+# Calculate the number of elements for the 10% sample
 sample_size = round(len(sarara_array) * 0.01)
 print('sample size', sample_size)
 # Randomly sample 
 sample_indices = np.random.choice(range(sarara_array.shape[0]), sample_size, replace=False)
-sarara_sample = sarara_array[sample_indices]                             
+sample_array = sarara_array[sample_indices]                             
 #sarara_sample = np.random.choice(sarara_array.flatten(), size=sample_size, replace=False)
 #sarara_sample = sarara_sample.reshape(-1, sarara_array.shape[1])
 
@@ -148,7 +148,7 @@ print(D)                      # Distances
 #%%
 #Full Search  
 startTime = datetime.now()
-D, I = index.search(sarara_sample, k)     # actual search
+D, I = index.search(sample_array, k)     # actual search
 print(I[:5])                   # neighbors of the 5 first queries
 print(I[-5:])                  # neighbors of the 5 last queries
 print(datetime.now() - startTime)
@@ -168,8 +168,22 @@ buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
 #matching_buffer_coords = np.column_stack((matching_buffer_coords, np.array(match_coords_y)))
 
 #%%
-#df.to_csv('buffer_matches_plot.csv', index = False)
+import pandas as pd
+buffer_df = pd.DataFrame(buffer_matches, columns = ['x', 'y'])
+buffer_df.to_csv('buffer_matches.csv', index = False)
+
+mathews_df = pd.DataFrame(sarara_sample_matches, columns = ['x', 'y'])
+mathews_df.to_csv('mathews_matches.csv', index = False)
 
 #SENSE CHECKING IN PLOT (geopands package issues so just export and plot outside venv)
 #X = pd.DataFrame(matching_buffer_coords, columns = ['distance_roads','distance_settlements','elevation', 'slope', 'x', 'y'])
 #X.to_csv('file.csv', index = False)
+# %%
+# Generate index values based on the number of rows
+make_index = np.arange(sample_array.shape[0]).reshape(-1, 1)
+
+# Add the index column to the ndarray
+sample_array = np.hstack((make_index, sample_array))
+
+#%%
+related_elements = dict(zip(sarara_sample[:, 0], buffer_array[[I.flatten()]]))
