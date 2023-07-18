@@ -17,8 +17,12 @@ import rasterio
 import numpy as np 
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
+import pandas as pd
+
 np.random.seed(42)
  
+#%%
+#Functions
 # Open the GeoTIFF file using rasterio and preprocess it for FAISS execution
 def read_geotiff_to_array_faiss(file_path):
     """
@@ -50,10 +54,10 @@ def read_geotiff_to_array_faiss(file_path):
         #there are so many missing values because raster always square matrix and the shape are not
     array = array[~np.any(np.isnan(array), axis=1)]
 
-    # Scale the values
-    scaler = MinMaxScaler()
+    # Scale the values - now in earth engine
+    #scaler = MinMaxScaler()
     # transform data
-    array = scaler.fit_transform(array)
+    #array = scaler.fit_transform(array)
         
     return array
 
@@ -97,38 +101,43 @@ def read_geotiff_to_array_results(file_path, select_indices):
     array[array == -999] = np.nan
     array = array[~np.any(np.isnan(array), axis=1)]   
     #subset to the matches or sample 
-    array = array[select_indices, 1:3]
+    array = array[select_indices, :] #, 1:3]
 
     return array
 
 #%%
-#Project Area
-sarara_file_path = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\matching\export_matching_data_pa.tif'
-sarara_array = read_geotiff_to_array_faiss(sarara_file_path)
+#Import Project Area
+pa_file_path = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\matching\export_matching_data_pa_sub.tif'
+pa_array = read_geotiff_to_array_faiss(pa_file_path)
 #%%
-#Randomly sample 1% from the Sarara array
-# Calculate the number of elements for the 10% sample
-sample_size = round(len(sarara_array) * 0.01)
+#Randomly sample 1% from the project array
+# Calculate the number of elements for the 1% sample
+sample_size = round(len(pa_array) * 0.01)
 print('sample size', sample_size)
 # Randomly sample 
-sample_indices = np.random.choice(range(sarara_array.shape[0]), sample_size, replace=False)
-sample_array = sarara_array[sample_indices]                             
-#sarara_sample = np.random.choice(sarara_array.flatten(), size=sample_size, replace=False)
-#sarara_sample = sarara_sample.reshape(-1, sarara_array.shape[1])
+sample_indices = np.random.choice(range(pa_array.shape[0]), sample_size, replace=False)
+sample_array = pa_array[sample_indices]                             
 
 #%%
-#Buffer Area
-buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\matching\export_matching_data_buffer.tif'
+#Import Buffer Area
+buffer_file_path = r'C:\Users\35387\OneDrive\Documents\learning\earth_engine_export_data\matching\export_matching_data_buffer_sub.tif'
 buffer_array = read_geotiff_to_array_faiss(buffer_file_path)
-
 #%%
 #FAISS Set Up
+#NOTE: When you first run or want to change the setup of the FAISS
+# you need to run lines 131-142. You can then check the results using 
+# 148-150 and write the index to memory with 145. 
+
+#See note above
 index = faiss.read_index("populated.index")
-k = 1                         # we want to see k nearest neighbors   
-"""  
+
+#Choose number of neighbours
+k = 1                       # we want to see k nearest neighbors   
+
+"""
 #Train and add to the index
 nlist= 100                     #number of Voronoi cells
-d = sarara_array.shape[1]      #dimensions
+d = pa_array.shape[1]      #dimensions
 quantizer = faiss.IndexFlatL2(d)  #the other index
 index = faiss.IndexIVFFlat(quantizer, d, nlist)
 assert not index.is_trained
@@ -141,7 +150,7 @@ print(index.ntotal)            #number of pixels indexed
 #faiss.write_index(index, "populated.index") #save the index to disk
 
 #Search subsection as sense check       
-D, I = index.search(sarara_sample[:5], k) # sanity check - want the distances to increase
+D, I = index.search(sample_array[:5], k) # sanity check - want the distances to increase
 print(I)                      # IDs
 print(D)                      # Distances
 """
@@ -152,14 +161,12 @@ D, I = index.search(sample_array, k)     # actual search
 print(I[:5])                   # neighbors of the 5 first queries
 print(I[-5:])                  # neighbors of the 5 last queries
 print(datetime.now() - startTime)
-
 #%%
-#Results export and explore
-sarara_sample_matches = read_geotiff_to_array_results(sarara_file_path, sample_indices)
+#SAMPLE results coordinates
+#sarara_sample_matches = read_geotiff_to_array_results(pa_file_path, sample_indices)
 
-#%%
-buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
-
+#BUFFER results coordinates
+#buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
 #%%
 #add the match id to the project area sample array 
 #sarara_sample_matched = np.concatenate((sarara_sample, I), axis = 1)
@@ -168,22 +175,50 @@ buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
 #matching_buffer_coords = np.column_stack((matching_buffer_coords, np.array(match_coords_y)))
 
 #%%
-import pandas as pd
+#Exporting the two matches to plot for visual sense-check 
+"""
 buffer_df = pd.DataFrame(buffer_matches, columns = ['x', 'y'])
 buffer_df.to_csv('buffer_matches.csv', index = False)
 
 mathews_df = pd.DataFrame(sarara_sample_matches, columns = ['x', 'y'])
 mathews_df.to_csv('mathews_matches.csv', index = False)
-
-#SENSE CHECKING IN PLOT (geopands package issues so just export and plot outside venv)
-#X = pd.DataFrame(matching_buffer_coords, columns = ['distance_roads','distance_settlements','elevation', 'slope', 'x', 'y'])
-#X.to_csv('file.csv', index = False)
+"""
 # %%
 # Generate index values based on the number of rows
-make_index = np.arange(sample_array.shape[0]).reshape(-1, 1)
+#make_index = np.arange(sample_array.shape[0]).reshape(-1, 1)
 
 # Add the index column to the ndarray
-sample_array = np.hstack((make_index, sample_array))
+#sample_array = np.hstack((sample_indices.reshape(-1, 1), sample_array))
+#related_elements = dict(zip(sample_array[:, 0], buffer_array[I.flatten()]))
 
 #%%
-related_elements = dict(zip(sarara_sample[:, 0], buffer_array[[I.flatten()]]))
+#Filter the buffer array to match
+match_array = buffer_array[I.flatten()]
+
+#%%
+#Consider an absolute standardized mean difference of <0.25
+# between treated and control samples across all covariates as
+# acceptable (Stuart, E. A. (2010). Matching methods for causal inference: A review and a
+# look forward. Statistical Science, 25, 1–21)
+diff_array = np.empty([match_array.shape[0], match_array.shape[1]])
+for loc in range(0, len(match_array)):
+    for band in range(0, match_array.shape[1]):
+        s = sample_array[loc, band]
+        m = match_array[loc, band]
+        diff = s - m
+        diff_array[loc, band] = diff
+
+#%%
+#Means from all values
+total_array = np.concatenate((buffer_array, pa_array), axis=0) 
+means = np.mean(total_array, axis=0)
+#%%
+#Compare the differences to the means
+absolute_differences = np.abs(diff_array - means)
+
+#Understand the differences
+mean_differences_from_mean = np.mean(absolute_differences, axis = 0)
+range_differences_from_mean = np.ptp(absolute_differences, axis = 0)
+
+#%%
+
