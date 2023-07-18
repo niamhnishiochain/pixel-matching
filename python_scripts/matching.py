@@ -162,44 +162,17 @@ print(I[:5])                   # neighbors of the 5 first queries
 print(I[-5:])                  # neighbors of the 5 last queries
 print(datetime.now() - startTime)
 #%%
-#SAMPLE results coordinates
-#sarara_sample_matches = read_geotiff_to_array_results(pa_file_path, sample_indices)
-
-#BUFFER results coordinates
-#buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
-#%%
-#add the match id to the project area sample array 
-#sarara_sample_matched = np.concatenate((sarara_sample, I), axis = 1)
-    
-#matching_buffer_coords = np.column_stack((buffer_array[list(I.flatten())], np.array(match_coords_x)))
-#matching_buffer_coords = np.column_stack((matching_buffer_coords, np.array(match_coords_y)))
-
-#%%
-#Exporting the two matches to plot for visual sense-check 
-"""
-buffer_df = pd.DataFrame(buffer_matches, columns = ['x', 'y'])
-buffer_df.to_csv('buffer_matches.csv', index = False)
-
-mathews_df = pd.DataFrame(sarara_sample_matches, columns = ['x', 'y'])
-mathews_df.to_csv('mathews_matches.csv', index = False)
-"""
-# %%
-# Generate index values based on the number of rows
-#make_index = np.arange(sample_array.shape[0]).reshape(-1, 1)
-
-# Add the index column to the ndarray
-#sample_array = np.hstack((sample_indices.reshape(-1, 1), sample_array))
-#related_elements = dict(zip(sample_array[:, 0], buffer_array[I.flatten()]))
-
-#%%
-#Filter the buffer array to match
+#Filter the buffer array to matches
 match_array = buffer_array[I.flatten()]
 
 #%%
-#Consider an absolute standardized mean difference of <0.25
+#Evaluate the matches: Consider an absolute standardized mean difference of <0.25
 # between treated and control samples across all covariates as
-# acceptable (Stuart, E. A. (2010). Matching methods for causal inference: A review and a
+# acceptable 
+# (Stuart, E. A. (2010). Matching methods for causal inference: A review and a
 # look forward. Statistical Science, 25, 1–21)
+
+#calculate the difference between the base and the match for all bands
 diff_array = np.empty([match_array.shape[0], match_array.shape[1]])
 for loc in range(0, len(match_array)):
     for band in range(0, match_array.shape[1]):
@@ -209,16 +182,22 @@ for loc in range(0, len(match_array)):
         diff_array[loc, band] = diff
 
 #%%
-#Means from all values
+#Means from all values to compare
 total_array = np.concatenate((buffer_array, pa_array), axis=0) 
 means = np.mean(total_array, axis=0)
 #%%
 #Compare the differences to the means
 absolute_differences = np.abs(diff_array - means)
 
-#Understand the differences
+#Understand the differences (which factors are matched less closely)
 mean_differences_from_mean = np.mean(absolute_differences, axis = 0)
 range_differences_from_mean = np.ptp(absolute_differences, axis = 0)
 
 #%%
+#To see the location of the matches (not a required step)
+#SAMPLE results coordinates
+#sarara_sample_matches = read_geotiff_to_array_results(pa_file_path, sample_indices)
+
+#BUFFER results coordinates
+#buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
 
