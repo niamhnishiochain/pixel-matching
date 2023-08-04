@@ -196,8 +196,10 @@ range_differences_from_mean = np.ptp(absolute_differences, axis = 0)
 #%%
 #To see the location of the matches (not a required step)
 #SAMPLE results coordinates
-#sarara_sample_matches = read_geotiff_to_array_results(pa_file_path, sample_indices)
+sarara_sample_matches = read_geotiff_to_array_results(pa_file_path, sample_indices)
+sarara_sample_matches.to_csv('sample_points.csv', index = False)
 
 #BUFFER results coordinates
-#buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
+buffer_matches = read_geotiff_to_array_results(buffer_file_path, I.flatten())
+buffer_matches.to_csv('sample_points.csv', index = False)
 
