@@ -13,6 +13,7 @@ This script:
 var kenya = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017').filter(ee.Filter.eq('country_na', ee.String('Kenya')));
 
 //Load the modelling data and filter to features relevant to matching
+//for this see script in github located at risk-modelling-work/ee-scripts/predictors
 var base = ee.Image('users/niamh-rtlab/modelling_data')
 var subset_base = base.select('distance_roads', 'distance_settlements', 
                               'slope', 'elevation')
