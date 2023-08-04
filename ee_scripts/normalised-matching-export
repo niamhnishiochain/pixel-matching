@@ -1,0 +1,152 @@
+/*
+This script:
+1. Creates buffers around the Sarara area (in, out, only the buffer)
+2. Clips the data to the buffer and to the project area
+3. Normalises the values of all bands to between 0 and 1
+4. Exports the clipped images as GeoTiffs
+*/
+
+//LOAD THE MODELLING DATA
+var inputImage = ee.Image('users/niamh-rtlab/matching')
+
+print(inputImage)
+//Map.addLayer(image.select('distance_roads'), {min: 0, max: 140000, palette: ['white', '#C8A2C8', 'purple']}, 'roads')
+// Generate buffered features out from the original boundary.
+var sararaArea = ee.FeatureCollection('users/niamh-rtlab/sarara_outline')
+                  .first();
+var sararaFeature = ee.Feature(sararaArea);
+             
+var bufferOut = sararaFeature.buffer(100000);  // 100 km out
+var bufferOutOnly = bufferOut.difference(sararaFeature);
+
+var roi = bufferOut.geometry()
+
+function normalize(image){
+  var bandNames = image.bandNames();
+  // Compute min and max of the image
+  var minDict = image.reduceRegion({
+    reducer: ee.Reducer.min(),
+    geometry: roi,
+    scale: 30,
+    maxPixels: 1e9,
+    bestEffort: true,
+    //tileScale: 16
+  });
+  var maxDict = image.reduceRegion({
+    reducer: ee.Reducer.max(),
+    geometry: roi,
+    scale: 30,
+    maxPixels: 1e9,
+    bestEffort: true,
+    //tileScale: 16
+  });
+  var mins = ee.Image.constant(minDict.values(bandNames));
+  var maxs = ee.Image.constant(maxDict.values(bandNames));
+  print(minDict, 'mins')
+  print(maxDict, 'maxs')
+  var normalized = image.subtract(mins).divide(maxs.subtract(mins))
+  print(normalized)
+  return normalized
+}
+
+//Apply the normalization function
+var image = normalize(inputImage)
+
+//***********************************************************
+//PROJECT AREA 
+//***********************************************************
+// Polygon feature of Sarara (National Park).
+var sararaArea = ee.FeatureCollection('users/niamh-rtlab/sarara_outline')
+                  .first();
+                  
+var projectArea = ee.FeatureCollection('WCMC/WDPA/current/polygons')
+  .filter(ee.Filter.and(ee.Filter.eq('NAME', 'Mathews Range')))
+
+// Cast the resulting object as an ee.Feature so that the call to the buffer
+// method is unambiguous (first() and buffer() are shared by multiple classes).
+var feature = ee.Feature(projectArea);
+Map.centerObject(projectArea);
+
+//Sarara only
+var pa_data = image.clip(projectArea)
+
+//Check the clipping
+var visProjectAreaImage = {bands: ["slope"], opacity: 1, palette: ["green"]}
+Map.addLayer(pa_data, visProjectAreaImage, 'Project Area Image');
+
+//Export to Asset
+/*
+Export.image.toAsset({
+  image: sarara_data,
+  description: 'matching_data_pa',
+  assetId: 'modelling_data_pa',
+  crs: 'EPSG:4326',
+  region: projectArea, //no need for this given that we have clipped the image
+  scale: 30, 
+  maxPixels: 1e13
+  //pyramiding policy
+});
+*/
+print(pa_data, 'pa_data')
+var pa_data_sub = pa_data.select(0, 1, 2, 3, 5, 6)
+// Export the image to Google Drive
+Export.image.toDrive({  
+  image: pa_data_sub.toFloat(),
+  description: 'export_matching_data_pa_sub',
+  scale: 30,  
+  region: projectArea,  
+  fileFormat: 'GeoTIFF', 
+  folder: 'pixel_matching'
+});
+
+
+//***********************************************************
+//BUFFER AREA 
+//***********************************************************
+// Display the features on the map. (visual inspection)
+//Map.addLayer(bufferOut, {color: 'red'}, 'Buffer out');
+Map.addLayer(sararaFeature, {color: 'blue'}, 'Original Area');
+Map.addLayer(bufferOutOnly, {color: 'purple'}, 'Buffer out');
+
+//See how the areas compare
+print('Out Buffer Area', 
+    bufferOutOnly.geometry().area(), 
+    'square meters');
+
+print('Original Area', 
+    sararaFeature.geometry().area(), 
+    'square meters');
+
+//Clip to the Buffer
+var buffer_data = image.clip(bufferOutOnly)
+
+//Check the clipping
+var visBufferImage = {bands: ["slope"], opacity: 1, palette: ["red"]}
+Map.addLayer(buffer_data, visBufferImage, 'Buffer Image');
+
+//Export to Assest
+/*
+Export.image.toAsset({
+  image: buffer_data,
+  description: 'asset_matching_data_buffer',
+  assetId: 'modelling_data_buffer',
+  crs: 'EPSG:4326',
+  //region: limits, //as before - no need as image is clipped
+  scale: 30, 
+  maxPixels: 1e13 
+  //pyramiding policy
+});
+*/
+print(buffer_data, 'buffer_data')
+var buffer_data_sub = buffer_data.select(0, 1, 2, 3, 5, 6)
+// Export the image to Google Drive
+//buffer_data = buffer_data.toUint16()
+Export.image.toDrive({
+  image: buffer_data_sub.toFloat(),
+  description: 'export_matching_data_buffer_sub',
+  scale: 30,  
+  region: bufferOutOnly, //no need - image is clipped
+  fileFormat: 'GeoTIFF', 
+  folder: 'pixel_matching'
+});
+
